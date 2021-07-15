@@ -1,5 +1,7 @@
 package com.revature.model;
 
-public class UserType {
+import java.io.Serializable;
 
+public enum UserType implements Serializable {
+	CUSTOMER, GAMER, ADMIN
 }
