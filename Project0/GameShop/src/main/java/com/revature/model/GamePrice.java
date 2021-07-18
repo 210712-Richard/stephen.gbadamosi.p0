@@ -4,12 +4,16 @@ import java.io.Serializable;
 
 public enum GamePrice implements Serializable {
 	SALE_DISCOUNT(0.10), 
-	RENT_PRICE(5.0), 
-	BUY_PRICE(20.0);
+	RENT_PRICE(5L), 
+	BUY_PRICE(20L);
 	
 	private final double value;
 	
 	private GamePrice(double price) {
+		this.value = price;
+	}	
+	
+	private GamePrice(Long price) {
 		this.value = price;
 	}
 

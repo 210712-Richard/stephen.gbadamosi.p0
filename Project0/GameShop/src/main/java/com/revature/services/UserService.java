@@ -1,5 +1,7 @@
 package com.revature.services;
 
-public class UserService {
+import com.revature.data.*;
+
+public class UserService extends UserDAO {
 
 }
