@@ -4,10 +4,10 @@ import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
 
-import com.revature.data.UserDAO;
+import com.revature.data.*;
 
 
-public class User extends UserDAO {
+public class User {
 	
 	private Integer id;
 	private String username;
@@ -18,110 +18,206 @@ public class User extends UserDAO {
 	private LocalDate lastCheckIn;
 	private List<Game> inventory;
 	private String message;
+	
+	public UserDAO udao = new UserDAO();
 
+	// Defaults to admin constructor
 	public User() {
 		super();
-		while (UserDAO.admins.get(UserDAO.curr_aid) != null) { // ID already in use
-			UserDAO.curr_aid++;
+		int id = UserDAO.first_aid+1;
+		
+		while (udao.getUser(id) != null && id < 100) { // ID already in use
+			if (++id == 100) { // All admin spots filled, block account creation
+				System.out.println("Unable to create new admin account, try again later");
+				return;
+			}
 		}
-		this.id = UserDAO.curr_aid++;
-		this.username = "admin" + this.id;
-		this.type = UserType.ADMIN;
-		this.points = 100L;		
-		this.message = "New account created!";
-		UserDAO.admins.put(this.id, this);
+		
+		this.setId(id);
+		this.setUsername("admin" + this.id);
+		this.setType(UserType.ADMIN);
+		this.setPoints(100L);		
+		this.setMessage("New admin account created!");
+//		udao.addUser(this);
 	}
 	
 	public User(Integer id, String username, String email, LocalDate birthday, UserType type) {
 		if (type == UserType.ADMIN) {
 			if (birthday.isAfter((LocalDate.now().minusYears(18)))) { // Admin is less than 18 yrs old, deny request
-				System.out.println("Minimum age for admin accounts is 18 years and older");
+				System.out.println("Minimum age for admin accounts is 18 years and older\n"
+						+ "Account creation failed");
 				return;
 			}
 			if (id < UserDAO.first_aid || id > UserDAO.last_aid) {
-				System.out.println("Invalid Admin ID, try again");
+				System.out.println("Invalid Admin ID, try again\n"
+						+ "Account creation failed");
 				return;
 			}
 			
 			int i = id;
-			while (UserDAO.admins.get(i) != null && i < UserDAO.last_aid) {
-				if (++i >= User.last_aid) {
-					System.out.println("Could not create user with ID: " + id);
+			while (udao.getUser(i) != null && i < UserDAO.last_aid) {
+				if (++i == UserDAO.last_aid) {
+					System.out.println("Could not create admin with ID: " + id);
 					return;
 				}
 			}
 			
-			this.id = id == i ? id : i;
-			System.out.println("Creating User with ID: " + this.id);
-			this.username = username;
-			this.email = email;
-			this.birthday = birthday;
-			this.type = UserType.ADMIN;
-			this.points = 100L;
-			this.message = "New account created!";
+			this.setId(id == i ? id : i);
+			if(id != i)
+				System.out.println("ID " + id + "already in use");
 			
-			UserDAO.admins.put(id, this);
+			System.out.println("Creating Admin with ID: " + this.getId());
+			this.setUsername(username);
+			this.setEmail(email);
+			this.setBirthday(birthday);
+			this.setType(UserType.ADMIN);
+			this.setPoints(100L);
+			this.setMessage("New admin account created!");
+//			udao.addUser(this);			
 		}
 		
 		else {	// User account requested
-			if (birthday.isAfter((LocalDate.now().minusYears(10)))) { // User is less than 18 yrs old, deny request
-				System.out.println("Minimum age for user accounts is 10 years and older");
+			if (birthday.isAfter((LocalDate.now().minusYears(10)))) { // User is less than 10 yrs old, deny request
+				System.out.println("Minimum age for user accounts is 10 years and older\n"
+						+ "Account creation failed");
 				return;
 			} 
-			if (id < UserDAO.first_aid || id > UserDAO.last_aid || UserDAO.admins.get(id) != null) {
-				System.out.println("Invalid Admin ID, try again");
-				return;
+			if (id < UserDAO.first_uid || id > UserDAO.last_uid || UserDAO.users.get(id) != null) {
+				System.out.println("Invalid User ID, using next available ID to create user account");
+				id = UserDAO.first_uid;
+				while(udao.getUser(id) != null && id < UserDAO.last_uid) {
+					if(++id == UserDAO.last_uid) {
+						System.out.println();
+					}
+				}
 			}
-			
-			this.id = id;
-			this.username = username;
-			this.email = email;
-			this.birthday = birthday;
-			this.type = UserType.CUSTOMER;
-			this.points = 10L;
-			this.message = "New account created!";
+			this.setId(id);
+			System.out.println("Creating User with ID: " + id);
 
-			UserDAO.users.put(id, this);
+			this.setUsername(username);
+			this.setEmail(email);
+			this.setBirthday(birthday);
+			this.setType(UserType.CUSTOMER);
+			this.setPoints(10L);
+			this.setMessage("New account created!");
+
+//			udao.addUser(this);
 		}
 	}
 	
-	public User(Integer id, String username, String email, LocalDate birthday) {
-		if (birthday.isAfter((LocalDate.now().minusYears(18)))) { // Admin is less than 18 yrs old, deny request
-			System.out.println("Minimum age for Admins: 18 years and older");
-			return;
-		} 
-		if (id < UserDAO.first_aid || id > UserDAO.last_aid || UserDAO.admins.get(id) != null) {
-			System.out.println("Invalid Admin ID, try again");
+	public User(String username, String email, LocalDate birthday) {
+		if (birthday.isAfter((LocalDate.now().minusYears(10)))) { // User is less than 10 yrs old, deny request
+			System.out.println("Minimum age for Users: 10 years and older\n"
+					+ "Account creation failed");
 			return;
 		}
+	
+		int id = UserDAO.first_uid + 1;
+		// Verify ID isn't currently in use
+		while(udao.getUser(id) != null && id < UserDAO.last_uid) {
+			if (++id == UserDAO.last_uid) {
+				System.out.println("Max user ID exceeded\nAccount creation failed");
+				return;
+			}
+		}
 		
-		this.id = id;
-		this.username = username;
-		this.email = email;
-		this.birthday = birthday;
-		this.type = UserType.PENDING;
-		this.points = 10L;
-		this.message = "New account created!";
+		this.setId(id);
+		this.setUsername(username);
+		this.setEmail(email);
+		this.setBirthday(birthday);
+		this.setType(UserType.PENDING);
+		this.setPoints(10L);
+		this.setMessage("New account pending confirmation");
+		
+		System.out.println("Thanks for registering! An admin will review and confirm your account within 48 hrs\n"
+				+ "Feel free to reach out to admin@gameshop.com with any questions");
+//		udao.addPendingUser(this);
+	}
+	
+	public User(String username, String email, LocalDate birthday, UserType type) {
+		if(type == UserType.ADMIN) {
+			if (birthday.isAfter((LocalDate.now().minusYears(18)))) { // Admin is less than 18 yrs old, deny request
+				System.out.println("Minimum age for admin accounts is 18 years and older\n"
+						+ "Account creation failed");
+				return;
+			}
+			
+			int id = UserDAO.first_aid;
+			while (udao.getUser(id) != null && id < UserDAO.last_aid) {
+				if (++id == UserDAO.last_aid) {
+					System.out.println("Could not create admin with ID: " + id);
+					return;
+				}
+			}
+			this.setId(id);
+			
+			System.out.println("Creating Admin with ID: " + id);
+			this.setUsername(username);
+			this.setEmail(email);
+			this.setBirthday(birthday);
+			this.setType(UserType.ADMIN);
+			this.setPoints(100L);
+			this.setMessage("New admin account created!");
+//			udao.addUser(this);
+		}
+		
+		else {	// User account requested
+			if (birthday.isAfter((LocalDate.now().minusYears(10)))) { // User is less than 10 yrs old, deny request
+				System.out.println("Minimum age for Users: 10 years and older\n"
+						+ "Account creation failed");
+				return;
+			}
+		
+			int id = UserDAO.first_uid + 1;
+			// Verify ID isn't currently in use
+			while(udao.getUser(id) != null && id < UserDAO.last_uid) {
+				if (++id == UserDAO.last_uid) {
+					System.out.println("Max user ID exceeded\nAccount creation failed");
+					return;
+				}
+			}
+			this.setId(id);
+			System.out.println("Creating User with ID: " + id);
 
-		UserDAO.pending_users.add(this);
+			this.setUsername(username);
+			this.setEmail(email);
+			this.setBirthday(birthday);
+			this.setType(UserType.CUSTOMER);
+			this.setPoints(10L);
+			this.setMessage("New account created!");
+
+//			udao.addUser(this);						
+		}
 	}
 	
 	public Integer getId() {
 		return id;
 	}
 	public void setId(Integer id) {
+		if (id <= 0 || id >= 1000) {
+			System.out.println("ID must be a positve number below 1000");
+			return;
+		}
 		this.id = id;
 	}
 	public String getUsername() {
 		return username;
 	}
 	public void setUsername(String username) {
+		if(username == null || username.length() < 3) {
+			System.out.println("Invalid username. Username must be at least 3 characters long");
+			return;
+		}
 		this.username = username;
 	}
 	public String getEmail() {
 		return email;
 	}
 	public void setEmail(String email) {
+		if(email.indexOf("@") < 0 || email.indexOf(".") < 0) {
+			System.out.println("Invalid email address. Try again");
+			return;
+		}
 		this.email = email;
 	}
 	public LocalDate getBirthday() {
@@ -222,10 +318,12 @@ public class User extends UserDAO {
 			return false;
 		return true;
 	}
+	
 	@Override
 	public String toString() {
+		String inv = inventory == null ? null : inventory.toString();
 		return "User [id=" + id + ", username=" + username + ", email=" + email + ", birthday=" + birthday + ", type="
-				+ type + ", points=" + points + ", lastCheckIn=" + lastCheckIn + "\nInventory =" + inventory.toString() + "]";
+				+ type + ", points=" + points + ", lastCheckIn=" + lastCheckIn + "\nInventory: " + inv + "]";
 	}
 	
 	
