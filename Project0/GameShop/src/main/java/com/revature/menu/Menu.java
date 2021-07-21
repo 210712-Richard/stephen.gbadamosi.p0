@@ -5,8 +5,9 @@ import java.util.Scanner;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.revature.model.*;
-import com.revature.services.*;
+import com.revature.data.UserDAO;
+import com.revature.model.User;
+import com.revature.services.UserService;
 import com.revature.util.SingletonScanner;
 
 // Encapsulate the user interface methods
@@ -30,7 +31,7 @@ public class Menu {
 				log.debug(username);
 				// Call the user service to find the user we want.
 				User u = null;
-				if(username.matches("^\\d+")) {
+				if(username.matches("^\\d+")) {	// Is Integer
 					try {
 						id = Integer.parseInt(username);
 						u = us.login(id);
@@ -49,7 +50,7 @@ public class Menu {
 				} 
 				else {
 					loggedUser = u;
-					System.out.println("Welcome back: "+u.getUsername());
+					System.out.println("Welcome: "+u.getUsername());
 					// call our next method (either the Player menu or the Admin menu, depending on user)
 					log.info("Successful login for user: "+loggedUser);
 					switch(loggedUser.getType()) {
@@ -59,7 +60,7 @@ public class Menu {
 						break;
 					case CUSTOMER:
 					case GAMER:
-						gamer();
+						gamer(u);
 						break;
 					
 					case ADMIN:
@@ -95,11 +96,13 @@ public class Menu {
 		return selection;
 	}
 	
-	private void gamer() {
+	private void gamer(User user) {
 		log.trace("Gamer menu loading...");
 		player: while(true) {
 			switch(gamerMenu()) {
-			case 1:	// View Account Details
+			case 1:	// Update Account Details
+				System.out.println(user.toString());
+				UserDAO.updateAccount(user);
 				break;
 			case 2:	// Rent title
 				break;
@@ -122,12 +125,11 @@ public class Menu {
 	
 	private int gamerMenu() {
 		System.out.println("What would you like to do?");
-		System.out.println("\t1. View Account Details");
+		System.out.println("\t1. Update Account Details");
 		System.out.println("\t2. Use Points: Rent Title");
 		System.out.println("\t3. Use Points: Buy Title");
 		System.out.println("\t4. Request new Title");
-		System.out.println("\t5. View Points");
-		System.out.println("\t6. Buy Points");
+		System.out.println("\t5. Buy Points");
 		System.out.println("\t0. Logout");
 		return select();
 	}
@@ -173,7 +175,6 @@ public class Menu {
 		System.out.println("\t6. Use Points: Rent title");
 		System.out.println("\t7. Use Points: Buy title");
 		System.out.println("\t8. Buy more points");
-		System.out.println("\t9. View P`oints");
 		System.out.println("\t0. Logout");
 		return select();
 	}

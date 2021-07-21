@@ -27,7 +27,7 @@ public class UserServiceTest {
 		service = new UserService(); // create a new userService for every test to maximize isolation
 		u.setLastCheckIn(LocalDate.of(2021, 1,1));
 		u.setPoints(50l);
-		service.udao = Mockito.mock(UserDAO.class);
+//		service.udao = Mockito.mock(UserDAO.class);
 	}
 	
 	@Test
