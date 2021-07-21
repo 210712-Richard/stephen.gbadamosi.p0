@@ -341,12 +341,12 @@ public class User implements Serializable {
 	@Override
 	public String toString() {
 		if (name == null && this.last_name == null) {
-			String inv = inventory == null ? " Empty " : inventory.toString();
+			String inv = inventory == null ? "Empty " : inventory.toString();
 			return "User [id=" + id + ", username=" + username + ", email=" + email + ", birthday=" + birthday + ", type="
 					+ type + ", points=" + points + ", lastCheckIn=" + lastCheckIn + "\nInventory: " + inv + "]";
 		}
 		else {
-			String inv = inventory == null ? " Empty " : inventory.toString();
+			String inv = inventory == null ? "Empty " : inventory.toString();
 			return "User [Name: " + name + " " + last_name + "\nid=" + id + ", username=" + username + ", email=" + email + ", birthday=" + birthday + ", type="
 			+ type + ", points=" + points + ", lastCheckIn=" + lastCheckIn + "\nInventory: " + inv + "]";			
 		}
