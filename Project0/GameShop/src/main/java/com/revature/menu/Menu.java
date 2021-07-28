@@ -231,7 +231,7 @@ public class Menu {
 				break;
 			case 0:
 				loggedUser = null;
-				break;
+				return;
 			default:
 				System.out.println("Invalid entry in admin menu. Try again using numbers to select option");
 				continue;
