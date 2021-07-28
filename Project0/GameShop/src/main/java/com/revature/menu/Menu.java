@@ -7,7 +7,8 @@ import org.apache.logging.log4j.Logger;
 
 import com.revature.data.UserDAO;
 import com.revature.model.User;
-import com.revature.services.UserService;
+import com.revature.model.UserType;
+import com.revature.services.*;
 import com.revature.util.SingletonScanner;
 
 // Encapsulate the user interface methods
@@ -16,6 +17,7 @@ public class Menu {
 	private static final Logger log = LogManager.getLogger(Menu.class);
 	
 	private UserService us = new UserService();
+	private AdminService as = new AdminService();
 	private User loggedUser = null;
 	private Scanner scan = SingletonScanner.getScanner().getScan();
 	
@@ -50,9 +52,10 @@ public class Menu {
 				} 
 				else {
 					loggedUser = u;
-					System.out.println("Welcome: "+u.getUsername());
+					System.out.println("Welcome: " + u.getUsername());
 					// call our next method (either the Player menu or the Admin menu, depending on user)
 					log.info("Successful login for user: "+loggedUser);
+					
 					switch(loggedUser.getType()) {
 					case PENDING:
 						System.out.println("Your account is pending review. You can login to "
@@ -60,17 +63,26 @@ public class Menu {
 						break;
 					case CUSTOMER:
 					case GAMER:
-						gamer(u);
+						if(loggedUser.getLastCheckIn() != null)
+							System.out.println(UserDAO.user_msg + " " + loggedUser.getUsername() + "!");
+						
+						gamer(loggedUser);
 						break;
 					
 					case ADMIN:
-						admin();
+						if(!UserDAO.admin_msg.isEmpty()) 
+							System.out.println(loggedUser.getUsername() + ": " + UserDAO.admin_msg);
+						
+						admin(loggedUser);
 						break;
 					}
 				}
 				break;
 			case 2:
-				// register
+				us.register();
+				System.out.println("Thanks for registering with us. "
+						+ "An admin will review and confirm your account within 72 hours.\n"
+						+ "Reach us at gso@gameshop.com with any questions");
 				break;
 			case 3:
 				// quit
@@ -91,34 +103,42 @@ public class Menu {
 		System.out.println("\t1. Login");
 		System.out.println("\t2. Register");
 		System.out.println("\t3. Quit");
+		try {
 		int selection = select();
-		log.trace("Start menu returning selection: "+selection);
+		log.trace("Start menu returning selection: " + selection);
 		return selection;
+		} catch (NumberFormatException e) {
+			return -1;
+		}
 	}
 	
 	private void gamer(User user) {
 		log.trace("Gamer menu loading...");
-		player: while(true) {
+		gamerLoop: while(true) {
 			switch(gamerMenu()) {
 			case 1:	// Update Account Details
 				System.out.println(user.toString());
-				UserDAO.updateAccount(user);
+				us.updateAccount(user);
 				break;
 			case 2:	// Rent title
+				GameService.rentGame(user);
 				break;
 			case 3:	// Buy title
+				GameService.buyGame(user);
 				break;
 			case 4:	// Request title
+				us.requestTitle(user);
 				break;
-			case 5:	// View points
+			case 5:	// View and buy points
 				System.out.println("You currently have " + loggedUser.getPoints() + " points.");
-				break;
-			case 6:	// Buy points
+				pointsMenu();
 				break;
 			case 0:
 				loggedUser = null;
-				break player;
+				break gamerLoop;
 			default:
+				// invalid selection
+				System.out.println("Not a valid selection, please try again.");				
 			}
 		}
 	}
@@ -134,40 +154,94 @@ public class Menu {
 		return select();
 	}
 	
-	private void admin() {
+	private void pointsMenu() {
+		System.out.println("You currently have " + loggedUser.getPoints() + " points.");
+		String first_tier = loggedUser.getType() == UserType.ADMIN ? "20 points" : "5 Points";
+		String second_tier = loggedUser.getType() == UserType.ADMIN ? "50 points" : "10 Points";
+		String third_tier = loggedUser.getType() == UserType.ADMIN ? "70 points" : "15 Points";
+		String fourth_tier = loggedUser.getType() == UserType.ADMIN ? "100 points" : "20 Points";
+	
+			while (true) {
+			System.out.println("How many points would you like to add?");
+			System.out.println("\t1. " + first_tier);
+			System.out.println("\t2. " + second_tier);
+			System.out.println("\t3. " + third_tier);
+			System.out.println("\t4. " + fourth_tier);
+			System.out.println("\t0. Quit");
+			int selection = select();
+			Long points = 0L;
+			
+			switch(selection) {
+			case 1:	// Buy 5 points for user, 20 points for admin
+				points = loggedUser.getType() == UserType.ADMIN ? 20L : 5L;
+				loggedUser.setPoints(loggedUser.getPoints() + points);
+				System.out.println("Success!\nYou now have " + loggedUser.getPoints() + " points.");
+				break;
+			case 2:	// Buy 10 points for user, 50 points for admin
+				points = loggedUser.getType() == UserType.ADMIN ? 50L : 10L;
+				loggedUser.setPoints(loggedUser.getPoints() + points);
+				System.out.println("Success!\\nYou now have " + loggedUser.getPoints() + " points.");
+				break;
+			case 3: // Buy 15 points for user, 70 points for admin
+				points = loggedUser.getType() == UserType.ADMIN ? 70L : 15L;
+				loggedUser.setPoints(loggedUser.getPoints() + points);
+				System.out.println("Success!\\nYou now have " + loggedUser.getPoints() + " points.");
+				break;
+			case 4:	// Buy 20 points for user, 100 for admin
+				points = loggedUser.getType() == UserType.ADMIN ? 100L : 20L;
+				loggedUser.setPoints(loggedUser.getPoints() + points);
+				System.out.println("Success!\\nYou now have " + loggedUser.getPoints() + " points.");
+				break;
+			case 0: // Quit
+				return;
+			default: System.out.println("Invalid input, use numbers to select option");
+				continue;
+			}
+		}		
+	}
+	
+	private void admin(User admin) {
 		log.trace("Admin menu loading...");
-		admin: while(true) {
+		while(true) {
 			switch(adminMenu()) {
-			case 1:
+			case 1:		// Add new user
 				break;
-			case 2:	// Approve pending users
+			case 2:		// Approve pending users
+				System.out.println("Loading pending users list..");
+				as.approveUsers();
 				break;
-			case 3:	// Approve pending titles
+			case 3:		// Approve pending titles
+				as.approveTitles();
 				break;
-			case 4:	// Manage users - sub menu to add, view, modify and delete accounts
+			case 4:		// Manage users - sub menu to add, view, modify and delete accounts
+				as.manageUsers(admin);
 				break;
-			case 5:	// Manage titles - sub menu to add, view, modify and delete games
+			case 5:		// Manage titles - sub menu to add, view, modify and delete games
+				as.manageTitles(admin);
 				break;
-			case 6:	// Rent title
+			case 6:		// Rent title
+				GameService.rentGame(admin);
 				break;
-			case 7:	// Buy title
+			case 7:		// Buy title
+				GameService.buyGame(admin);
 				break;
-			case 8:	// Buy points
-				break;
-			case 9:	// View points
+			case 8:		// Add points
 				System.out.println("You currently have " + loggedUser.getPoints() + " points.");
+				pointsMenu();
 				break;
 			case 0:
 				loggedUser = null;
-				break admin;
+				break;
 			default:
+				System.out.println("Invalid entry in admin menu. Try again using numbers to select option");
+				continue;
 			}
 		}
 	}
 	
 	private int adminMenu() {
 		System.out.println("What would you like to do?");
-		System.out.println("\t1. View Account Details");
+		System.out.println("\t1. Add User");
 		System.out.println("\t2. Approve Pending Users");
 		System.out.println("\t3. Approve Pending Titles");		
 		System.out.println("\t4. Manage Users");
@@ -179,15 +253,16 @@ public class Menu {
 		return select();
 	}
 	
-	private int select() {
+	public static int select() {
+		Scanner scan = SingletonScanner.getScanner().getScan();
 		int selection;
 		try {
 			selection = Integer.parseInt(scan.nextLine());
-		} catch(Exception e) {
+		} catch(NumberFormatException e) {
 			selection = -1;
-			e.printStackTrace();
+//			e.printStackTrace();
 		}
-		
+
 		//log
 		return selection;
 	}

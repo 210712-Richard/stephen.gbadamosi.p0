@@ -35,7 +35,7 @@ public class UserServiceTest {
 		String username = "test";
 		String email = "test@test.test";
 		LocalDate date = LocalDate.of(2020, 2, 2);
-		service.register(username, email, date);
+//		service.register(username, email, date);
 		
 		// An object that allows us to receive parameters from methods called on a Mockito mock object
 		ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);

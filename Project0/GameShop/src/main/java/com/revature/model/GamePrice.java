@@ -1,11 +1,10 @@
 package com.revature.model;
 
-import java.io.Serializable;
-
-public enum GamePrice implements Serializable {
+public enum GamePrice {
 	SALE_DISCOUNT(0.10), 
 	RENT_PRICE(5L), 
-	BUY_PRICE(20L);
+	BUY_PRICE(20L),
+	DAILY_BONUS(1L);
 	
 	private final double value;
 	
@@ -13,7 +12,7 @@ public enum GamePrice implements Serializable {
 		this.value = price;
 	}	
 	
-	private GamePrice(Long price) {
+	private GamePrice(long price) {
 		this.value = price;
 	}
 

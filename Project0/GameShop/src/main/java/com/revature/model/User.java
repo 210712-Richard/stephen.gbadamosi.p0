@@ -2,10 +2,10 @@ package com.revature.model;
 
 import java.io.Serializable;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.revature.data.UserDAO;
-import com.revature.services.UserService;
 
 
 public class User implements Serializable {
@@ -20,7 +20,8 @@ public class User implements Serializable {
 	private UserType type;
 	private Long points;
 	private LocalDate lastCheckIn;
-	private List<Game> inventory;
+	public List<Game> inventory;
+	private Integer rent_count;				// MAX 2 for users | 4 for admins
 	private String message;
 	
 //	private UserDAO udao = new UserDAO();
@@ -40,7 +41,9 @@ public class User implements Serializable {
 		this.setUsername("admin" + this.id);
 		this.setType(UserType.ADMIN);
 		this.setPoints(100L);		
+		this.setRentCount(0);
 		this.setMessage("New admin account created!");
+		this.inventory = new ArrayList<Game>();
 //		udao.addUser(this);
 	}
 	
@@ -60,7 +63,10 @@ public class User implements Serializable {
 		this.setEmail(email);
 		this.setBirthday(bday);
 		this.setType(type);
-		
+		this.setRentCount(0);
+		this.setMessage("New " + type + " account created!");
+		this.inventory = new ArrayList<Game>();
+
 	}
 	
 	public User(Integer id, String username, String email, LocalDate birthday, UserType type) {
@@ -97,7 +103,9 @@ public class User implements Serializable {
 			this.type = type;
 			points = type == UserType.ADMIN ? 100L : 10L;		
 			this.points = points;
+			this.setRentCount(0);
 			this.setMessage("New " + type + " account created!");
+			this.inventory = new ArrayList<Game>();
 		}
 		else {
 			System.out.println("Unable to create new account");
@@ -139,7 +147,9 @@ public class User implements Serializable {
 			this.birthday = birthday;
 			this.type = UserType.CUSTOMER;
 			this.points = 10L;
+			this.setRentCount(0);
 			this.setMessage("New account pending confirmation");
+			this.inventory = new ArrayList<Game>();
 			
 			System.out.println("Thanks for registering! An admin will review and confirm your account within 48 hrs\n"
 					+ "Feel free to reach out to admin@gameshop.com with any questions");
@@ -170,21 +180,24 @@ public class User implements Serializable {
 			flag = false;
 		}
 		
-		if(!UserDAO.checkBirthday(birthday, UserType.CUSTOMER)) {
+		if(!UserDAO.checkBirthday(birthday, type)) {
 			System.out.println("Failed to set birthday in constructor");
 			flag = false;;
 		}
 		
 		if(flag) {					
 			this.id = id;
-			System.out.println("Creating Admin with ID: " + this.getId());
+			System.out.println("Creating " + type + " with ID: " + this.getId());
 			this.username = username;
 			this.email = email;
 			this.birthday = birthday;
 			this.type = type;
 			points = type == UserType.ADMIN ? 100L : 10L;
 			this.points = points;
-	
+			this.setRentCount(0);
+			this.setMessage("New " + type + " account created!");
+			this.inventory = new ArrayList<Game>();
+
 		}
 		
 		System.out.println("Unable to create new " + type + " account");
@@ -212,7 +225,7 @@ public class User implements Serializable {
 	}
 	public void setId(Integer id) {
 		if (id <= 0 || id >= 1000) {
-			System.out.println("ID must be a positve number below 1000");
+			System.out.println("ID must be a number between 101 and 1000");
 			return;
 		}
 		this.id = id;
@@ -235,7 +248,7 @@ public class User implements Serializable {
 		if(UserDAO.checkEmail(email))
 			this.email = email;
 		else {
-			System.out.println("Didn't to update email address");
+			System.out.println("Didn't update email address");
 			return;
 		}
 	}
@@ -255,7 +268,12 @@ public class User implements Serializable {
 		return this.points;
 	}
 	public void setPoints(Long points) {
-		this.points = points;
+		if (points < 0L) {
+			System.out.println("Points cannot be less than 0, resetting to 0");
+			this.points = 0L;
+		}
+		else 
+			this.points = points;
 	}
 	public LocalDate getLastCheckIn() {
 		return lastCheckIn;
@@ -275,16 +293,28 @@ public class User implements Serializable {
 	public void setInventory(List<Game> inventory) {
 		this.inventory = inventory;
 	}
+	public Integer getRentCount() {
+		return rent_count;
+	}
+
+	public void setRentCount(Integer rent_count) {
+		this.rent_count = rent_count;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((birthday == null) ? 0 : birthday.hashCode());
-		result = prime * result + ((points == null) ? 0 : points.hashCode());
 		result = prime * result + ((email == null) ? 0 : email.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((inventory == null) ? 0 : inventory.hashCode());
 		result = prime * result + ((lastCheckIn == null) ? 0 : lastCheckIn.hashCode());
+		result = prime * result + ((last_name == null) ? 0 : last_name.hashCode());
+		result = prime * result + ((message == null) ? 0 : message.hashCode());
+		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		result = prime * result + ((points == null) ? 0 : points.hashCode());
+		result = prime * result + ((rent_count == null) ? 0 : rent_count.hashCode());
 		result = prime * result + ((type == null) ? 0 : type.hashCode());
 		result = prime * result + ((username == null) ? 0 : username.hashCode());
 		return result;
@@ -302,11 +332,6 @@ public class User implements Serializable {
 			if (other.birthday != null)
 				return false;
 		} else if (!birthday.equals(other.birthday))
-			return false;
-		if (points == null) {
-			if (other.points != null)
-				return false;
-		} else if (!points.equals(other.points))
 			return false;
 		if (email == null) {
 			if (other.email != null)
@@ -328,6 +353,31 @@ public class User implements Serializable {
 				return false;
 		} else if (!lastCheckIn.equals(other.lastCheckIn))
 			return false;
+		if (last_name == null) {
+			if (other.last_name != null)
+				return false;
+		} else if (!last_name.equals(other.last_name))
+			return false;
+		if (message == null) {
+			if (other.message != null)
+				return false;
+		} else if (!message.equals(other.message))
+			return false;
+		if (name == null) {
+			if (other.name != null)
+				return false;
+		} else if (!name.equals(other.name))
+			return false;
+		if (points == null) {
+			if (other.points != null)
+				return false;
+		} else if (!points.equals(other.points))
+			return false;
+		if (rent_count == null) {
+			if (other.rent_count != null)
+				return false;
+		} else if (!rent_count.equals(other.rent_count))
+			return false;
 		if (type != other.type)
 			return false;
 		if (username == null) {
@@ -340,15 +390,7 @@ public class User implements Serializable {
 	
 	@Override
 	public String toString() {
-		if (name == null && this.last_name == null) {
-			String inv = inventory == null ? "Empty " : inventory.toString();
-			return "User [id=" + id + ", username=" + username + ", email=" + email + ", birthday=" + birthday + ", type="
-					+ type + ", points=" + points + ", lastCheckIn=" + lastCheckIn + "\nInventory: " + inv + "]";
-		}
-		else {
-			String inv = inventory == null ? "Empty " : inventory.toString();
-			return "User [Name: " + name + " " + last_name + "\nid=" + id + ", username=" + username + ", email=" + email + ", birthday=" + birthday + ", type="
-			+ type + ", points=" + points + ", lastCheckIn=" + lastCheckIn + "\nInventory: " + inv + "]";			
-		}
+				return "User [Name: " + name + " " + last_name + "\nid=" + id + ", username=" + username + ", email=" + email + ", birthday=" + birthday + ", type="
+			+ type + ", points=" + points + ", last check-in=" + lastCheckIn + ", rented titles= " + rent_count + "\nInventory: " + (inventory == null ? "Empty" : inventory.toString() ) + "]";	
 	}
 }
