@@ -213,7 +213,7 @@ public class GameDAO implements Serializable {
 							if(use_pts >= 0) {
 								user.setPoints(use_pts);
 								user.inventory.add(game);
-								game.user = user;
+								game.rentedBy = user.getUsername();
 								game.status = GameStatus.RENTED;
 								game.rentDate = LocalDate.now();
 								game.returnDate = game.rentDate.plusWeeks(2);
@@ -225,7 +225,8 @@ public class GameDAO implements Serializable {
 								
 								return GameStatus.RENTED;
 							}
-							
+							else 
+								System.out.println("Insufficient points for user to rent title");
 						}
 						
 						else {	// User is non-admin
@@ -234,7 +235,7 @@ public class GameDAO implements Serializable {
 								user.setPoints(use_pts);
 								user.inventory.add(game);
 								user.setType(UserType.GAMER);
-								game.user = user;
+								game.rentedBy = user.getUsername();
 								game.status = GameStatus.RENTED;
 								game.rentDate = LocalDate.now();
 								game.returnDate = game.rentDate.plusWeeks(1);
@@ -280,14 +281,15 @@ public class GameDAO implements Serializable {
 					user = UserDAO.getUser(username);
 					if(user != null) {
 						use_pts = user.getPoints() - 20L;
-						if(user.getType() == UserType.ADMIN || (game.user != null && game.user.equals(user))) {
+						if(user.getType() == UserType.ADMIN || (game.rentedBy != null && game.rentedBy.equals(user.getUsername()))) {
 							use_pts = user.getPoints() - 10L;
 						}
 						if(use_pts >= 0) {
 							user.setPoints(use_pts);
 							user.inventory.add(game);
-							game.user = user;
+							game.ownedBy = user.getUsername();
 							game.status = GameStatus.SOLD;
+							game.rentedBy = null;
 							game.rentDate = null;
 							game.returnDate = null;
 							System.out.println(game.title + " sold to " + user.getUsername());
@@ -300,6 +302,7 @@ public class GameDAO implements Serializable {
 						}										
 			
 						System.out.println("Not enough points to buy game, buy more points then try again");
+						return GameStatus.AVAILABLE;
 					}
 					
 					System.out.println("Invalid username, try again");

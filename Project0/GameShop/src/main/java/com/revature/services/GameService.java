@@ -127,7 +127,7 @@ public class GameService {
 				System.out.println("Invalid game title for purchase. Try again");
 				continue chooseGameLoop;				
 			}
-			if(game.status != GameStatus.AVAILABLE && (game.user == null || !game.user.equals(user) )) {
+			if(game.status != GameStatus.AVAILABLE && (game.rentedBy == null || !game.rentedBy.equals(user.getUsername()))) {
 				System.out.println("That title is currently unavailable, please try another");
 				continue chooseGameLoop;
 			}
@@ -138,16 +138,17 @@ public class GameService {
 		Long buy_price = 20L;
 		// Verify user type
 		if(game != null) {
-			if(user.getType() == UserType.ADMIN || (game.user != null && game.user.equals(user))) {
+			if(user.getType() == UserType.ADMIN || (game.rentedBy != null && game.rentedBy.equals(user.getUsername()))) {
 				// Apply discount for renting title
 				buy_price = 10L;
 			}
 			
 			if(user.getPoints() > buy_price) {
-				user.setPoints(user.getPoints() - 10);
+				user.setPoints(user.getPoints() - buy_price);
 				user.inventory.add(game);
-				game.user = user;
+				game.ownedBy = user.getUsername();
 				game.status = GameStatus.SOLD;
+				game.rentedBy = null;
 				game.rentDate = null;
 				game.returnDate = null;
 				System.out.println(game.title + " sold to " + user.getUsername());
@@ -175,7 +176,7 @@ public class GameService {
 		
 		// List games by title
 		GameDAO.games.toString();
-		System.out.println("Select game title you'd like to rent");
+		System.out.println("Enter a game title you'd like to rent");
 		Game game = null;
 		chooseGameLoop: while(!validSelection) { 
 			String game_name = GameDAO.getTitle();
@@ -207,6 +208,7 @@ public class GameService {
 					game.status = GameStatus.RENTED;
 					game.rentDate = LocalDate.now();
 					game.returnDate = LocalDate.now().plusWeeks(1);
+					game.rentedBy = user.getUsername();
 					System.out.println("Game rented for a week. Due Date: " + game.returnDate.toString());
 					
 					UserDAO.writeToFile(UserDAO.getUsers(), UserDAO.user_file);
@@ -219,59 +221,28 @@ public class GameService {
 				}
 			}
 			else {
-				switch(GameService.rentMenu()) {
-					case 1: // Rent for a week
-						user.setPoints(user.getPoints() - 5L);
-						user.inventory.add(game);
-						game.status = GameStatus.RENTED;
-						game.rentDate = LocalDate.now();
-						game.returnDate = LocalDate.now().plusWeeks(1);
-						System.out.println("Game rented for a week. Due Date: " + game.returnDate.toString());
+				// Give admins 4-week rental option
+				int selection = GameService.rentMenu();
+				if(selection > 0 && selection <= 4) {
+					user.setPoints(user.getPoints() - 5L);
+					user.inventory.add(game);
+					game.status = GameStatus.RENTED;
+					game.rentDate = LocalDate.now();
+					game.returnDate = LocalDate.now().plusWeeks(selection);
+					game.rentedBy = user.getUsername();
+					System.out.println("Game rented for " + selection + " week(s). Due Date: " + game.returnDate.toString());
 
-						UserDAO.writeToFile(UserDAO.getAdmins(), UserDAO.admin_file);
-						GameDAO.writeToFile(GameDAO.games, GameDAO.games_file);
-						break;
-					case 2: // Rent for 2 weeks
-						user.setPoints(user.getPoints() - 5L);
-						user.inventory.add(game);
-						game.status = GameStatus.RENTED;
-						game.rentDate = LocalDate.now();
-						game.returnDate = LocalDate.now().plusWeeks(2);
-						System.out.println("Game rented for 2 weeks. Due Date: " + game.returnDate.toString());
-	
-						UserDAO.writeToFile(UserDAO.getAdmins(), UserDAO.admin_file);
-						GameDAO.writeToFile(GameDAO.games, GameDAO.games_file);
-						break;
-					case 3: // Rent for 3 weeks
-						user.setPoints(user.getPoints() - 5L);
-						user.inventory.add(game);
-						game.status = GameStatus.RENTED;
-						game.rentDate = LocalDate.now();
-						game.returnDate = LocalDate.now().plusWeeks(3);
-						System.out.println("Game rented for 3 weeks. Due Date: " + game.returnDate.toString());
-
-						UserDAO.writeToFile(UserDAO.getAdmins(), UserDAO.admin_file);
-						GameDAO.writeToFile(GameDAO.games, GameDAO.games_file);
-						break;
-					case 4: // Rent for 4 weeks
-						user.setPoints(user.getPoints() - 5L);
-						user.inventory.add(game);
-						game.status = GameStatus.RENTED;
-						game.rentDate = LocalDate.now();
-						game.returnDate = LocalDate.now().plusWeeks(4);
-						System.out.println("Game rented for 4 weeks. Due Date: " + game.returnDate.toString());
-
-						UserDAO.writeToFile(UserDAO.getAdmins(), UserDAO.admin_file);
-						GameDAO.writeToFile(GameDAO.games, GameDAO.games_file);
-						break;
-					default: // Invalid
+					UserDAO.writeToFile(UserDAO.getAdmins(), UserDAO.admin_file);
+					GameDAO.writeToFile(GameDAO.games, GameDAO.games_file);
+					return;
+				}
+				
+				else {
 						System.out.println("Invalid rent selection. No change made to title");
 						return;
 				}
 			}
 		}
-		// Give admins 4-week rental option
-
 	}
 	
 	public static Long usePoints(User user, String intent) {

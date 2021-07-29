@@ -230,6 +230,7 @@ public class Menu {
 				pointsMenu();
 				break;
 			case 0:
+				System.out.println(loggedUser.getUsername() + " signing off..");
 				loggedUser = null;
 				return;
 			default:

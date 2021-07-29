@@ -390,7 +390,11 @@ public class User implements Serializable {
 	
 	@Override
 	public String toString() {
-				return "User [Name: " + name + " " + last_name + "\nid=" + id + ", username=" + username + ", email=" + email + ", birthday=" + birthday + ", type="
+		if(name == null || name.equals(""))
+			return "User [username=" + username + ", email=" + email + ", birthday=" + birthday + ", type="	+ type + ", points=" + points + ", last check-in=" + lastCheckIn + 
+					", rented titles= " + rent_count + "\nInventory: " + (inventory == null ? "Empty" : inventory.toString() ) + "]";
+		else
+			return "User [Name: " + name + " " + last_name + "\nid=" + id + ", username=" + username + ", email=" + email + ", birthday=" + birthday + ", type="
 			+ type + ", points=" + points + ", last check-in=" + lastCheckIn + ", rented titles= " + rent_count + "\nInventory: " + (inventory == null ? "Empty" : inventory.toString() ) + "]";	
 	}
 }

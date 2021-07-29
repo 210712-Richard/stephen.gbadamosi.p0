@@ -2,10 +2,15 @@ package com.revature.services;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.List;
 
 import com.revature.data.GameDAO;
 import com.revature.data.UserDAO;
-import com.revature.model.*;
+import com.revature.model.Game;
+import com.revature.model.GameRating;
+import com.revature.model.GameStatus;
+import com.revature.model.User;
+import com.revature.model.UserType;
 
 public class UserService {
 	private static UserDAO udao = new UserDAO();
@@ -36,7 +41,8 @@ public class UserService {
 		u.setEmail(UserDAO.getEmail());
 		System.out.println("Account updated");
 		
-		UserDAO.writeToFile((ArrayList<User>)UserDAO.users.values(), UserDAO.user_file);
+		List<User> user_list = new ArrayList<User>(UserDAO.users.values());
+		UserDAO.writeToFile(user_list, UserDAO.user_file);
 	}
 	
 	public boolean requestTitle(User u) {	
@@ -88,6 +94,23 @@ public class UserService {
 		User u = new User(name, last_name, username, email, birthday, UserType.PENDING);
 		udao.addPendingUser(u);
 		
+		UserDAO.writeToFile(UserDAO.pending_users, UserDAO.pending_ufile);
+	}
+	
+	public User register(String username, String email, LocalDate birthday) {
+		User u = null;
+		if(!UserDAO.checkUsername(username)) {
+			u = new User(username, email, birthday, UserType.PENDING);
+			udao.addPendingUser(u);
+
+			UserDAO.writeToFile(UserDAO.pending_users, UserDAO.pending_ufile);
+
+			return u;
+		}
+		else
+			System.out.println("Registration failded due to invalid username. Try another");
+		
+		return u;
 	}
 
 }

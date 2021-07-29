@@ -14,15 +14,15 @@ public class Game implements Serializable {
 	public GameStatus status;
 	public LocalDate rentDate;
 	public LocalDate returnDate;
-	public User user;
+	public String rentedBy;
+	public String ownedBy;
 	
 	public Game() {
 		super();
 		this.status = GameStatus.AVAILABLE;
 		this.price = GamePrice.BUY_PRICE;
 		this.releaseDate = LocalDate.of(LocalDate.now().getYear(), 1, 1); // Set release date to current year
-		this.rating = GameRating.E;
-		
+		this.rating = GameRating.E;		
 	}
 	
 	public Game(String title, GameRating rating, LocalDate release, GameStatus status) {
@@ -76,25 +76,43 @@ public class Game implements Serializable {
 	public void setReturnDate(LocalDate returnDate) {
 		this.returnDate = returnDate;
 	}
-	public User getUser() {
-		return user;
+	public LocalDate getReleaseDate() {
+		return releaseDate;
 	}
-	public void setUser(User user) {
-		this.user = user;
+
+	public void setReleaseDate(LocalDate releaseDate) {
+		this.releaseDate = releaseDate;
+	}
+
+	public String getRentedBy() {
+		return rentedBy;
+	}
+
+	public void setRentedBy(String rentedBy) {
+		this.rentedBy = rentedBy;
+	}
+
+	public String getOwnedBy() {
+		return ownedBy;
+	}
+
+	public void setOwnedBy(String ownedBy) {
+		this.ownedBy = ownedBy;
 	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result + ((ownedBy == null) ? 0 : ownedBy.hashCode());
 		result = prime * result + ((price == null) ? 0 : price.hashCode());
 		result = prime * result + ((rating == null) ? 0 : rating.hashCode());
 		result = prime * result + ((releaseDate == null) ? 0 : releaseDate.hashCode());
 		result = prime * result + ((rentDate == null) ? 0 : rentDate.hashCode());
+		result = prime * result + ((rentedBy == null) ? 0 : rentedBy.hashCode());
 		result = prime * result + ((returnDate == null) ? 0 : returnDate.hashCode());
 		result = prime * result + ((status == null) ? 0 : status.hashCode());
 		result = prime * result + ((title == null) ? 0 : title.hashCode());
-		result = prime * result + ((user == null) ? 0 : user.hashCode());
 		return result;
 	}
 	@Override
@@ -106,12 +124,14 @@ public class Game implements Serializable {
 		if (getClass() != obj.getClass())
 			return false;
 		Game other = (Game) obj;
+		if (ownedBy == null) {
+			if (other.ownedBy != null)
+				return false;
+		} else if (!ownedBy.equals(other.ownedBy))
+			return false;
 		if (price != other.price)
 			return false;
-		if (rating == null) {
-			if (other.rating != null)
-				return false;
-		} else if (!rating.equals(other.rating))
+		if (rating != other.rating)
 			return false;
 		if (releaseDate == null) {
 			if (other.releaseDate != null)
@@ -122,6 +142,11 @@ public class Game implements Serializable {
 			if (other.rentDate != null)
 				return false;
 		} else if (!rentDate.equals(other.rentDate))
+			return false;
+		if (rentedBy == null) {
+			if (other.rentedBy != null)
+				return false;
+		} else if (!rentedBy.equals(other.rentedBy))
 			return false;
 		if (returnDate == null) {
 			if (other.returnDate != null)
@@ -135,19 +160,13 @@ public class Game implements Serializable {
 				return false;
 		} else if (!title.equals(other.title))
 			return false;
-		if (user == null) {
-			if (other.user != null)
-				return false;
-		} else if (!user.equals(other.user))
-			return false;
 		return true;
 	}
 	@Override
 	public String toString() {
-		return "Game [title=" + title + ", rating=" + rating + ", price=" + price + ", release_date=" + releaseDate
-				+ ", status=" + status + ", rentDate=" + (rentDate == null ? "Empty" : rentDate) + ", returnDate=" 
-				+ (returnDate == null ? "Empty" : returnDate) + ", user=" + (user == null ? "Empty" : user.toString())
-				+ "]";
+		return "Game [title=" + title + ", rating=" + rating + ", price=" + price + ", releaseDate=" + releaseDate
+				+ ", status=" + status + ", rentDate=" + rentDate + ", returnDate=" + returnDate + ", rentedBy="
+				+ rentedBy + ", ownedBy=" + ownedBy + "]";
 	}
 
 	
