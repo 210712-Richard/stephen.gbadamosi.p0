@@ -390,12 +390,12 @@ public class AdminControllerImpl extends UserControllerImpl implements AdminCont
 			ctx.html("Invalid User");
 			return;
 		}
-		
+
+		user.inventory.remove(game);
 		game.rentedBy = null;
 		game.rentDate = null;
 		game.returnDate = null;
 		game.status = GameStatus.AVAILABLE;
-		user.inventory.remove(game);
 		
 		UserDAO.writeToFile(UserDAO.getUsers(), UserDAO.user_file);
 		UserDAO.writeToFile(UserDAO.getAdmins(), UserDAO.admin_file);

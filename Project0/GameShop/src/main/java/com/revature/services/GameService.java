@@ -281,11 +281,11 @@ public class GameService {
 			if(game.getRentedBy().equalsIgnoreCase(user.getUsername())) {
 			
 				System.out.println("Returning game: " + game.title);
+				user.inventory.remove(game);
 				game.rentedBy = null;
 				game.rentDate = null;
 				game.returnDate = null;
 				game.status = GameStatus.AVAILABLE;
-				user.inventory.remove(game);
 				GameDAO.writeToFile(GameDAO.games, GameDAO.games_file);
 				UserDAO.writeToFile(UserDAO.getAdmins(), UserDAO.admin_file);
 				UserDAO.writeToFile(UserDAO.getUsers(), UserDAO.user_file);
