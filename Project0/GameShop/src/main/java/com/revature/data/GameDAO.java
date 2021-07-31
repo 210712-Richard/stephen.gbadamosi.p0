@@ -154,7 +154,7 @@ public class GameDAO implements Serializable {
 	public static Game getGame(String request) {
 		String target = request;
 		if (request == null || request.equals("")) {
-			System.out.println("Enter the title you wish to remove from inventory: ");
+			System.out.println("Enter Game Title: ");
 			target = scan.nextLine();
 		}
 		if(target == null || target.equals("")) {
@@ -166,7 +166,7 @@ public class GameDAO implements Serializable {
 		if(GameDAO.games.size() > 0) {
 			for(Game game : GameDAO.games) {
 				if(game.title.equalsIgnoreCase(target)) {
-					System.out.println("Game found in database");
+					System.out.println("Game found in database :" + game.toString());
 					return game;
 				}
 			}
@@ -334,9 +334,9 @@ public class GameDAO implements Serializable {
 		
 		while(!validRating) {
 			System.out.println("Enter game rating: ");
-			System.out.println("\t1. E - Everyone");
-			System.out.println("\t2. PG13 - 13 years and older");
-			System.out.println("\t3. 17 - 17+");
+			System.out.println("\t** E - Everyone");
+			System.out.println("\t** PG13 - 13 years and older");
+			System.out.println("\t** 17 - 17+");
 			String rating = scan.nextLine();
 			rating.trim();
 			

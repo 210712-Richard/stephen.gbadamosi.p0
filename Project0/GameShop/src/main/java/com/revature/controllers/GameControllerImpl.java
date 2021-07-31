@@ -10,18 +10,6 @@ import com.revature.services.GameService;
 public class GameControllerImpl implements GameController {
 
 	@Override
-	public void requestTitle(Context ctx) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void addTitle(Context ctx) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
 	public void viewTitle(Context ctx) {
 		// TODO Auto-generated method stub
 		String title = ctx.pathParam("title");
@@ -38,8 +26,9 @@ public class GameControllerImpl implements GameController {
 			ctx.html("No game with requested title found");
 			return;
 		}		
+		
 		ctx.json(game);
-
+		ctx.status(200);
 	}
 
 	@Override
@@ -57,6 +46,7 @@ public class GameControllerImpl implements GameController {
 			ctx.html("No games added to inventory");
 			return;
 		}
+		
 		ctx.json(GameDAO.games);
 
 	}

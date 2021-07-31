@@ -13,22 +13,42 @@ import com.revature.model.User;
 import com.revature.model.UserType;
 
 public class UserService {
-	private static UserDAO udao = new UserDAO();
+	public static UserDAO udao = new UserDAO();
 
 	public User login(String uname) {
 		User u = UserDAO.getUser(uname);
+		if(u == null) {
+			System.out.println("Username not found in database");
+			return u;
+		}
+		
+		System.out.println("Welcome " + u.getUsername());
+		if(u.getType() == UserType.ADMIN) {
+			if(UserDAO.pending_users.size() > 0)
+				System.out.println("There are users pending your approval");
+			
+			if (GameDAO.pending_games.size() > 0)
+				System.out.println("There are titles pending your approval");
+		}
 		return u;
 		
 	}
 	
 	public User login(Integer uid) {
-		User u = null; 
-		u = UserDAO.getUserbyID(uid);
+		User u = UserDAO.getUserbyID(uid);
 		if (u == null) {
 			System.out.println("No account exists with ID: " + uid + "Try again");
 			return u;
 		}
 		
+		System.out.println("Welcome " + u.getUsername());
+		if(u.getType() == UserType.ADMIN) {
+			if(UserDAO.pending_users.size() > 0)
+				System.out.println("There are users pending your approval");
+			
+			if (GameDAO.pending_games.size() > 0)
+				System.out.println("There are titles pending your approval");
+		}
 		System.out.println("Found " + u.getType() + " account with ID: " + uid);
 		return u;
 	}
@@ -75,11 +95,9 @@ public class UserService {
 		GameDAO.pending_games.add(p_game);
 		GameDAO.writeToFile(GameDAO.pending_games, GameDAO.pending_gfile);	
 		
-		return true;
-	}
-	
-	public void buyPoints() {
+		GameDAO.admin_msg_games = "Games pending approval, please review.";
 		
+		return true;
 	}
 	
 	public void register() {
@@ -94,21 +112,19 @@ public class UserService {
 		User u = new User(name, last_name, username, email, birthday, UserType.PENDING);
 		udao.addPendingUser(u);
 		
-		UserDAO.writeToFile(UserDAO.pending_users, UserDAO.pending_ufile);
 	}
 	
 	public User register(String username, String email, LocalDate birthday) {
 		User u = null;
-		if(!UserDAO.checkUsername(username)) {
-			u = new User(username, email, birthday, UserType.PENDING);
+		if(UserDAO.checkUsername(username)) {
+			u = new User(username, email, birthday);
 			udao.addPendingUser(u);
 
 			UserDAO.writeToFile(UserDAO.pending_users, UserDAO.pending_ufile);
-
 			return u;
 		}
 		else
-			System.out.println("Registration failded due to invalid username. Try another");
+			System.out.println("Registration failed due to invalid username. Try another");
 		
 		return u;
 	}

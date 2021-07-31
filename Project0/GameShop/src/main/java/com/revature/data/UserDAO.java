@@ -12,6 +12,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.revature.menu.Menu;
+import com.revature.model.Game;
+import com.revature.model.GameStatus;
 import com.revature.model.User;
 import com.revature.model.UserType;
 import com.revature.util.SingletonScanner;
@@ -138,7 +140,8 @@ public class UserDAO implements Serializable {
 	}	
 	
 	public static int checkID(Integer id, UserType type) {
-		int uid = id != 0 ? id : UserDAO.first_aid + 1;
+		// id is 0 if we want it auto-assigned otherwise try to use requested id if available
+		int uid = id > 0 ? id : UserDAO.first_aid + 1;
 		System.out.println("Checking that UID: " + uid + " is valid...");
 		
 		if(UserDAO.getUserbyID(uid) != null) { // ID already in use
@@ -147,7 +150,8 @@ public class UserDAO implements Serializable {
 
 		if(type == UserType.ADMIN) {
 			while (UserDAO.getUserbyID(uid) != null && uid < UserDAO.last_aid) { // ID already in use
-				if (++uid == 100) { // All admin spots filled, block account creation
+				uid++;
+				if (uid == 100) { // All admin spots filled, block account creation
 					System.out.println("Unable to create new admin account, try again later");
 					return 0;
 				}
@@ -158,7 +162,8 @@ public class UserDAO implements Serializable {
 		else {	// User ID requested
 			uid = UserDAO.first_uid + 1;
 			while(UserDAO.getUserbyID(uid) != null && uid < UserDAO.last_uid) {
-				if(++uid == UserDAO.last_uid) {	// All user spots filled, block account creation
+				uid++;
+				if(uid == UserDAO.last_uid) {	// All user spots filled, block account creation
 					System.out.println("Unable to create new user account, try again later");
 					return 0;
 				}
@@ -168,41 +173,54 @@ public class UserDAO implements Serializable {
 		}
 	}
 	
+	// Returns false if there is a conflict with username check otherwise returns true	
 	public static boolean checkUsername(String username) {
+		System.out.println("Checking " + username + " for validity..");
+		boolean status = false;
+		
 		if(username == null || username.length() < 3) {
 			System.out.println("Invalid username. Username must be at least 3 characters long");
 			return false;
 		}
 		
-		if(users != null) {
+		if(users != null && users.size() > 0) {
 			List<User> users_list = new ArrayList<User>(users.values());
-			for(User u : users_list) {
+			for(User u : users_list) {			
 				if(u.getUsername().equalsIgnoreCase(username)) {
-					System.out.println("Username in use");
+					System.out.println("Username in use");		
 					return false;
 				}
 			}
 		}
 
-		if(admins != null) {
+		if(admins != null && admins.size() > 0) {
 			List<User> admins_list = new ArrayList<User>(admins.values());		
-			for(User u : admins_list) {
-				if(u.getUsername().equalsIgnoreCase(username)) {
+			for(User a : admins_list) {
+				if(a.getUsername().equalsIgnoreCase(username)) {
 					System.out.println("Invalid username entered - user already exists");
-					return false;
+					return status;
 				}
 			}
 		}
-		return true;
+	
+		System.out.println("Success! Username is valid");
+		status = true;		
+
+		return status;
 	}
 	
 	public static boolean checkEmail(String email) {
-		return (email.indexOf("@") > 0 &&
-				email.lastIndexOf(".") >= email.trim().length()-4);
+		System.out.println("Checking email for validity..");
+		boolean status = false;
+		status = (email.trim().indexOf("@") > 0 && email.trim().lastIndexOf(".") > email.trim().indexOf("@"));
+		System.out.println("Email check returned " + status);
+		return status;
 	}
 	
+	// Returns false if birthday fails to satisfy age requirements for account type
 	public static boolean checkBirthday(LocalDate birthday, UserType type) {
 		LocalDate limit = LocalDate.now();
+		System.out.println("Entering Birthday check for " + type + " account type");
 		if (type == UserType.ADMIN) {
 			limit.minus(Period.of(18, 0, 0));
 			limit.plus(Period.of(0, 0, 1));
@@ -222,27 +240,64 @@ public class UserDAO implements Serializable {
 				return false;
 			}
 		}
+		System.out.println("Birthday check passed");
 		return true;
 	}
 	
 	public static User getUser(String username) {
-		User target = null;
-		List<User> user_list = new ArrayList<User>(getUsers());
-		List<User> admin_list = new ArrayList<User>(getAdmins());
-		for(int i = 0; i < user_list.size(); i++) {
-			if(user_list.get(i).getUsername().equalsIgnoreCase(username)) {
-				return target = user_list.get(i);
+		String target = username;
+		if (username == null || username.equals("")) {
+			System.out.println("Enter a username or ID: ");
+			target = scan.nextLine();
+		}
+		if(target == null || target.equals("")) {
+			System.out.println("Invalid input, try again.");
+			return null;
+		}
+		target.trim();
+		System.out.println("Searching for user " + target);
+		
+		int uid;
+		User user = null;
+		if(target.matches("^\\d+")) {	// Is Integer
+			uid = Integer.parseInt(target);
+			user = getUserbyID(uid);
+			if(user == null) {
+				System.out.println("No userfound with ID provided");
+				return null;
+			}
+			else {
+				System.out.println("Found user with ID: " + uid + " , Username: " + user.getUsername());
+				return user;
 			}
 		}
-		for(int j = 0; j < admin_list.size(); j++) {
-			if(admin_list.get(j).getUsername().equalsIgnoreCase(username)) {
-				return target = admin_list.get(j);
+		
+		System.out.println("Target user: " + target);
+		List<User> user_list = getUsers();
+		List<User> admin_list = getAdmins();		
+		for(User u : user_list) {
+			System.out.println(u.toString());
+			System.out.println("User: " + u.getUsername() + " == " + target + " ? "
+					+ u.getUsername().equalsIgnoreCase(target));
+			if(u.getUsername().equalsIgnoreCase(target)) {
+				user = u;
+				System.out.println("Found user with username: " + user.getUsername());
+				return user;
 			}
-			else 
-				System.out.println("Username not registered in database");
 		}
-
-		return target;
+		for(User admin : admin_list) {
+			System.out.println(admin.toString());
+			System.out.println("User: " + admin.getUsername() + " == " + target + " ? "
+					+ admin.getUsername().equalsIgnoreCase(target));
+			if(admin.getUsername().equalsIgnoreCase(target)) {
+				user = admin;
+				System.out.println("Found admin with username: " + user.getUsername());
+				return user;
+			}
+		}
+		
+		System.out.println("Username not registered in database");
+		return user;
 	}
 	
 	public static User getUserbyID(Integer id) {
@@ -261,12 +316,12 @@ public class UserDAO implements Serializable {
 		return new ArrayList<User>(admins.values());
 	}
 	
-	public List<User> getPendingUsers() {
+	public static List<User> getPendingUsers() {
 		return pending_users;
 	}
 		
 	public static String getFirstName() {
-		System.out.println("Enter your First Name: ");
+		System.out.println("Enter First Name: ");
 		String new_name = scan.nextLine();
 		new_name.trim(); // sanitize input
 		if((new_name != null || !new_name.equals("")) && alphabetOnly(new_name)) {
@@ -278,7 +333,7 @@ public class UserDAO implements Serializable {
 	}
 	
 	public static String getLastName() {
-		System.out.println("Enter your Last Name: ");
+		System.out.println("Enter Last Name: ");
 		String last_name = scan.nextLine();
 		last_name.trim(); // sanitize input
 		if((last_name != null || !last_name.equals("")) && alphabetOnly(last_name)) {
@@ -289,14 +344,14 @@ public class UserDAO implements Serializable {
 		return "";	}
 	
 	public static String getNewUsername(String curr_uname) {
-		System.out.println("Choose your username: ");
+		System.out.println("Choose username: ");
 		String new_uname = scan.nextLine();
 		new_uname.trim();
-		if(!new_uname.equals("") || new_uname.equalsIgnoreCase(curr_uname)) {
+		if(new_uname == null || new_uname.equalsIgnoreCase(curr_uname)) {
 			return curr_uname;
 		}
 		
-		if((new_uname == null || new_uname.equals("")) || !checkUsername(new_uname)) {
+		if(!checkUsername(new_uname)) {
 			System.out.println("Invalid username entered in getNew Username");
 			return null;
 		}
@@ -305,7 +360,7 @@ public class UserDAO implements Serializable {
 	}
 	
 	public static String getEmail() {
-		System.out.println("Enter the email address you'd like to use: ");
+		System.out.println("Enter the email address to use: ");
 		String email = scan.nextLine();
 		if(checkEmail(email)) {
 			return email;
@@ -315,7 +370,7 @@ public class UserDAO implements Serializable {
 	}
 	
 	public static LocalDate getNewBirthday(UserType type) {
-		System.out.println("Enter your birthday (YYYY/MM/DD): ");
+		System.out.println("Enter birthday (YYYY/MM/DD): ");
 		String s = scan.nextLine();
 		String[] bday = s.split("/");
 		if(bday.length < 3) {
@@ -412,35 +467,131 @@ public class UserDAO implements Serializable {
 		if(pending_users == null) {
 			pending_users = new ArrayList<User>();
 		}
+		if(p_user == null) {
+			System.out.println("Account creation failed, unable to add pending user");
+			return;
+		}
+		System.out.println("Registration successful. Added new user to pending user queue");
 		pending_users.add(p_user);
 		writeToFile(pending_users, "pending_users.dat");		
 	}
 		
-	public void addUser() {
+	public static void addUser() {
 		// Get user input for account details
+		System.out.println("Please enter account details for new user: ");
 		String name = getFirstName();
 		String last_name = getLastName();
 		String uname = getNewUsername("");
 		String email = getEmail();
-		LocalDate birthday = getNewBirthday(UserType.CUSTOMER);
+		UserType type = getNewType();
+		type = (type == null ? UserType.CUSTOMER : type);
+		LocalDate birthday = getNewBirthday(type);
+		User new_user;
 		
-		User u = new User(name, last_name, uname, email, birthday, UserType.CUSTOMER);
-		System.out.println("Adding new user...");
-		
-		users.put(u.getId(), u);
-	}
-	
-	public static boolean deleteUser(User user) { // Move to admin service
-		User removed_user = users.remove(user.getId()); 
-		removed_user = removed_user == null ? admins.remove(user.getId()) : removed_user;
-		if(removed_user == null) {
-			System.out.println("User not found. Delete operation failed");
-			return false;
+		if(birthday == null) {
+			System.out.println("Unable to set birthday for user. Adding new user failed, try again");
+			return;
 		}
 		
-		return true;
-	}
+		new_user = new User(name, last_name, uname, email, birthday, type);
+			
+		if(type == UserType.ADMIN)
+			admins.put(new_user.getId(), new_user);
+		else
+			users.put(new_user.getId(), new_user);
+
+		writeToFile(getAdmins(), admin_file);
+		writeToFile(getUsers(), user_file);
+
 		
+		System.out.println("Success! Added new " + type + ": " + new_user.getUsername());
+	}
+	
+	public static User addUser(String username, String email, LocalDate birthday, UserType type) {
+		// Get user input for account details
+		System.out.println("Entering add user constructor");
+		User new_user = new User(username, email, birthday, type);
+		
+		if(new_user != null && new_user.getUsername() != null) {		
+			if(new_user.getType() == UserType.ADMIN) {
+				admins.put(new_user.getId(), new_user);
+				List<User> admin_list = getAdmins();
+				writeToFile(admin_list, admin_file);
+				System.out.println("Success! Added new admin: " + new_user.getUsername());
+			}
+			
+			else {	// Add new customer			
+				users.put(new_user.getId(), new_user);
+				List<User> user_list = getUsers();
+				writeToFile(user_list, user_file);
+				System.out.println("Success! Added new user: " + new_user.getUsername());
+			}
+		}
+		
+		return new_user;
+	}
+	
+	public static boolean deleteUser(User user, String del_username) { // Move to admin service
+		System.out.println("Entering delete user menu..");
+		
+		boolean status = false;
+		// Verify user is admin
+		if(user.getType() == UserType.ADMIN) {
+			// Search user by username / ID
+			User del_user = getUser(del_username);
+			
+			// Remove User
+			if(del_user != null) {
+				System.out.println("Found User: " + del_user.getUsername());
+				System.out.println("Are you sure you want to delete this User: " + del_user.getUsername()
+						+ "?\n(Y)es or (N)o to continue");			
+				String confirm = scan.nextLine();
+				confirm.trim();
+				
+				if(confirm.equalsIgnoreCase("yes") || confirm.equalsIgnoreCase("y") || confirm.equals("")) {
+					// scan game inventory to reset values
+					for(Game g : del_user.inventory) {
+						if(g.status == GameStatus.RENTED) {
+							g.status = GameStatus.AVAILABLE;
+							g.rentDate = null;
+							g.returnDate = null;
+							g.rentedBy = null;
+						}
+					}
+					
+					if(del_user.getType() == UserType.ADMIN) {
+						System.out.println("Removing admin: " + del_user.getUsername());
+						admins.remove(del_user.getId(), del_user);
+						List<User> admin_list = getAdmins();
+						writeToFile(admin_list, admin_file);
+
+					}
+					else {
+						System.out.println("Removing User: " + del_user.getUsername() + " from database");
+						users.remove(del_user.getId(), del_user);	
+						List<User> user_list = getUsers();
+						writeToFile(user_list, user_file);
+												
+						status = true;
+					}
+					
+					GameDAO.writeToFile(GameDAO.games, GameDAO.games_file);
+					return status;
+				}
+				if(confirm.equalsIgnoreCase("no") || confirm.equalsIgnoreCase("n")) {
+					System.out.println("Delete operation cancelled by admin");
+					return false;
+				}
+			}
+			System.out.println("Delete failed. Double check username and try again");
+		}
+		
+		else
+			System.out.println("You don't have permission for the requested action. Please login as an admin then try again");
+
+		return status;
+	}
+	
 	public static HashMap<Integer, User> populateMap(List<User> list) {
 		HashMap<Integer, User> newMap = null;
 		if(list != null) {

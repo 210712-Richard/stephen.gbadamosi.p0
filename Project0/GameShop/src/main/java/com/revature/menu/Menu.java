@@ -1,11 +1,15 @@
 package com.revature.menu;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Scanner;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.revature.data.GameDAO;
 import com.revature.data.UserDAO;
+import com.revature.model.Game;
 import com.revature.model.User;
 import com.revature.model.UserType;
 import com.revature.services.*;
@@ -18,7 +22,7 @@ public class Menu {
 	
 	private UserService us = new UserService();
 	private AdminService as = new AdminService();
-	private User loggedUser = null;
+	public User loggedUser = null;
 	private Scanner scan = SingletonScanner.getScanner().getScan();
 	
 	public void start() {
@@ -70,8 +74,10 @@ public class Menu {
 						break;
 					
 					case ADMIN:
-						if(!UserDAO.admin_msg.isEmpty()) 
+						if(!UserDAO.admin_msg.isEmpty()) {
 							System.out.println(loggedUser.getUsername() + ": " + UserDAO.admin_msg);
+							System.out.println(loggedUser.getUsername() + ": " + GameDAO.admin_msg_games);
+						}
 						
 						admin(loggedUser);
 						break;
@@ -84,13 +90,14 @@ public class Menu {
 						+ "An admin will review and confirm your account within 72 hours.\n"
 						+ "Reach us at gso@gameshop.com with any questions");
 				break;
-			case 3:
+			case 0:
 				// quit
 				System.out.println("Thanks for using GameShop Online - Goodbye!");
 				break mainLoop;
 			default:
 				// invalid selection
 				System.out.println("Not a valid selection, please try again.");
+				continue;
 			}
 		}
 		log.trace("Ending start()");
@@ -102,7 +109,7 @@ public class Menu {
 		System.out.println("What would you like to do?");
 		System.out.println("\t1. Login");
 		System.out.println("\t2. Register");
-		System.out.println("\t3. Quit");
+		System.out.println("\t0. Quit");
 		try {
 		int selection = select();
 		log.trace("Start menu returning selection: " + selection);
@@ -112,24 +119,58 @@ public class Menu {
 		}
 	}
 	
+	public static void printUser(User user) {
+		if(user == null) {
+			System.out.println("Couldn't find user to show details. Try again");
+			return;
+		}
+		
+		System.out.println(user.toString());
+		System.out.println("**********   Account Details   **********");
+		
+		if(user.getName() != null &&  user.getLastName() != null)
+			System.out.println("\t** Name: " + user.getName() + " " + user.getLastName());
+		
+		System.out.println("\t** Username: " + user.getUsername() + " (" + user.getId() + ")");
+		System.out.println("\t** Email: " + user.getEmail());
+		System.out.println("\t** Birthday: " + user.getBirthday());
+		System.out.println("\t** Account Type: " + user.getType());
+		System.out.println("\t** GS Points: " + user.getPoints());
+//		System.out.println("Last Login: " + user.getLastCheckIn());
+		
+		if(user.getBirthday().equals(LocalDate.now()))
+			System.out.println("Message from GameShop: Happy Birthday!");
+		
+		System.out.println("Message from GameShop: " + user.getMessage());
+		System.out.println("Gaming Inventory: " + (user.getInventory() == null ? "Empty" : user.getInventory()));
+		
+		return;
+	}
+	
 	private void gamer(User user) {
 		log.trace("Gamer menu loading...");
 		gamerLoop: while(true) {
 			switch(gamerMenu()) {
-			case 1:	// Update Account Details
+			case 1:	// View Account Details				
+				printUser(user);
+				break;
+			case 2:	// Update Account Details
 				System.out.println(user.toString());
 				us.updateAccount(user);
 				break;
-			case 2:	// Rent title
+			case 3:	// Rent title
 				GameService.rentGame(user);
 				break;
-			case 3:	// Buy title
+			case 4:	// Buy title
 				GameService.buyGame(user);
 				break;
-			case 4:	// Request title
+			case 5:	// Return title
+				GameService.returnGame(user);
+				break;
+			case 6:	// Request title
 				us.requestTitle(user);
 				break;
-			case 5:	// View and buy points
+			case 7:	// View and buy points
 				System.out.println("You currently have " + loggedUser.getPoints() + " points.");
 				pointsMenu();
 				break;
@@ -145,11 +186,13 @@ public class Menu {
 	
 	private int gamerMenu() {
 		System.out.println("What would you like to do?");
-		System.out.println("\t1. Update Account Details");
-		System.out.println("\t2. Use Points: Rent Title");
-		System.out.println("\t3. Use Points: Buy Title");
-		System.out.println("\t4. Request new Title");
-		System.out.println("\t5. Buy Points");
+		System.out.println("\t1. View Account Details");
+		System.out.println("\t2. Update Account Details");
+		System.out.println("\t3. Use Points: Rent Title");
+		System.out.println("\t4. Use Points: Buy Title");
+		System.out.println("\t5. Return Title");
+		System.out.println("\t6. Request new Title");
+		System.out.println("\t7. Buy Points");
 		System.out.println("\t0. Logout");
 		return select();
 	}
@@ -175,23 +218,31 @@ public class Menu {
 			case 1:	// Buy 5 points for user, 20 points for admin
 				points = loggedUser.getType() == UserType.ADMIN ? 20L : 5L;
 				loggedUser.setPoints(loggedUser.getPoints() + points);
+				UserDAO.writeToFile(UserDAO.getAdmins(), UserDAO.admin_file);
+				UserDAO.writeToFile(UserDAO.getUsers(), UserDAO.user_file);
 				System.out.println("Success!\nYou now have " + loggedUser.getPoints() + " points.");
-				break;
+				return;
 			case 2:	// Buy 10 points for user, 50 points for admin
 				points = loggedUser.getType() == UserType.ADMIN ? 50L : 10L;
 				loggedUser.setPoints(loggedUser.getPoints() + points);
 				System.out.println("Success!\\nYou now have " + loggedUser.getPoints() + " points.");
-				break;
+				UserDAO.writeToFile(UserDAO.getAdmins(), UserDAO.admin_file);
+				UserDAO.writeToFile(UserDAO.getUsers(), UserDAO.user_file);
+				return;
 			case 3: // Buy 15 points for user, 70 points for admin
 				points = loggedUser.getType() == UserType.ADMIN ? 70L : 15L;
 				loggedUser.setPoints(loggedUser.getPoints() + points);
 				System.out.println("Success!\\nYou now have " + loggedUser.getPoints() + " points.");
-				break;
+				UserDAO.writeToFile(UserDAO.getAdmins(), UserDAO.admin_file);
+				UserDAO.writeToFile(UserDAO.getUsers(), UserDAO.user_file);
+				return;
 			case 4:	// Buy 20 points for user, 100 for admin
 				points = loggedUser.getType() == UserType.ADMIN ? 100L : 20L;
 				loggedUser.setPoints(loggedUser.getPoints() + points);
+				UserDAO.writeToFile(UserDAO.getAdmins(), UserDAO.admin_file);
+				UserDAO.writeToFile(UserDAO.getUsers(), UserDAO.user_file);
 				System.out.println("Success!\\nYou now have " + loggedUser.getPoints() + " points.");
-				break;
+				return;
 			case 0: // Quit
 				return;
 			default: System.out.println("Invalid input, use numbers to select option");
@@ -205,12 +256,15 @@ public class Menu {
 		while(true) {
 			switch(adminMenu()) {
 			case 1:		// Add new user
+				System.out.println("Loading options to add new user");
+				UserDAO.addUser();
 				break;
 			case 2:		// Approve pending users
 				System.out.println("Loading pending users list..");
 				as.approveUsers();
 				break;
 			case 3:		// Approve pending titles
+				System.out.println("Loading pending games list..");
 				as.approveTitles();
 				break;
 			case 4:		// Manage users - sub menu to add, view, modify and delete accounts
@@ -225,7 +279,11 @@ public class Menu {
 			case 7:		// Buy title
 				GameService.buyGame(admin);
 				break;
-			case 8:		// Add points
+			case 8:		// Return title
+				System.out.println("You currently have " + loggedUser.getPoints() + " points.");
+				GameService.returnGame(admin);
+				break;
+			case 9:		// Add points
 				System.out.println("You currently have " + loggedUser.getPoints() + " points.");
 				pointsMenu();
 				break;
@@ -249,7 +307,8 @@ public class Menu {
 		System.out.println("\t5. Add new title");		
 		System.out.println("\t6. Use Points: Rent title");
 		System.out.println("\t7. Use Points: Buy title");
-		System.out.println("\t8. Buy more points");
+		System.out.println("\t8. Return title");
+		System.out.println("\t9. Buy more points");
 		System.out.println("\t0. Logout");
 		return select();
 	}

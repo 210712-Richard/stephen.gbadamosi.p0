@@ -15,6 +15,8 @@ public interface UserController {
 		
 	void rentTitle(Context ctx);
 
+	void returnTitle(Context ctx);
+
 	void buyTitle(Context ctx);
 
 	void viewInventory(Context ctx);

@@ -29,20 +29,19 @@ public class User implements Serializable {
 
 	// Defaults to admin constructor
 	public User() {
-		super();
-		int id = UserDAO.first_aid;
-		id = UserDAO.checkID(id, UserType.ADMIN);
-		if(id <= 0) {
+		int id = UserDAO.first_uid;
+		id = UserDAO.checkID(id, UserType.CUSTOMER);
+		if(id <= UserDAO.first_uid) {
 			System.out.println("Failed to create new admin in constructor");
 			return;
 		}
 		
 		this.setId(id);
-		this.setUsername("admin" + this.id);
-		this.setType(UserType.ADMIN);
+		this.setUsername("user" + this.id);
+		this.setType(UserType.CUSTOMER);
 		this.setPoints(100L);		
 		this.setRentCount(0);
-		this.setMessage("New admin account created!");
+		this.setMessage("New customer account created!");
 		this.inventory = new ArrayList<Game>();
 //		udao.addUser(this);
 	}
@@ -160,48 +159,42 @@ public class User implements Serializable {
 	}
 	
 	public User(String username, String email, LocalDate birthday, UserType type) {
-		boolean flag = true;
-		int id = 0;
-		id = UserDAO.checkID(id, type);
+		int id = 0, uid;
+		uid = UserDAO.checkID(id, type);
 		long points = 0;
 		
-		if(id <= 0); {
+		if(uid <= 0) {
 			System.out.println("Failed to create ID in constructor");
-			flag = false;
+			return;
 		}
 	
 		if(!UserDAO.checkUsername(username)) {
 			System.out.println("Failed to set username in constructor");
-			flag = false;
+			return;
 		}
 
 		if(!UserDAO.checkEmail(email)) {
 			System.out.println("Failed to set email in constructor");
-			flag = false;
+			return;
 		}
 		
 		if(!UserDAO.checkBirthday(birthday, type)) {
 			System.out.println("Failed to set birthday in constructor");
-			flag = false;;
+			return;
 		}
 		
-		if(flag) {					
-			this.id = id;
-			System.out.println("Creating " + type + " with ID: " + this.getId());
-			this.username = username;
-			this.email = email;
-			this.birthday = birthday;
-			this.type = type;
-			points = type == UserType.ADMIN ? 100L : 10L;
-			this.points = points;
-			this.setRentCount(0);
-			this.setMessage("New " + type + " account created!");
-			this.inventory = new ArrayList<Game>();
-
-		}
-		
-		System.out.println("Unable to create new " + type + " account");
-		return;			
+		this.id = uid;
+		System.out.println("Creating " + type + " with ID: " + this.getId());
+		this.username = username;
+		this.email = email;
+		this.birthday = birthday;
+		this.type = type;
+		points = type == UserType.ADMIN ? 100L : 10L;
+		this.points = points;
+		this.setRentCount(0);
+		this.setMessage("New " + type + " account created!");
+		this.inventory = new ArrayList<Game>();
+	
 	}
 	
 	public String getName() {
@@ -391,7 +384,7 @@ public class User implements Serializable {
 	@Override
 	public String toString() {
 		if(name == null || name.equals(""))
-			return "User [username=" + username + ", email=" + email + ", birthday=" + birthday + ", type="	+ type + ", points=" + points + ", last check-in=" + lastCheckIn + 
+			return "User [username=" + username + "\nid=" + id + ", email=" + email + ", birthday=" + birthday + ", type="	+ type + ", points=" + points + ", last check-in=" + lastCheckIn + 
 					", rented titles= " + rent_count + "\nInventory: " + (inventory == null ? "Empty" : inventory.toString() ) + "]";
 		else
 			return "User [Name: " + name + " " + last_name + "\nid=" + id + ", username=" + username + ", email=" + email + ", birthday=" + birthday + ", type="

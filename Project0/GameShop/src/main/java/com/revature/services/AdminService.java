@@ -18,7 +18,8 @@ public class AdminService {
 
 	private static final Logger log = LogManager.getLogger(Menu.class);
 	private Scanner scan = SingletonScanner.getScanner().getScan();
-	private static GameService gs = new GameService();
+	public static GameService gs = new GameService();
+	public static UserDAO udao = new UserDAO();
 
 	public void approveUsers() {
 		// View list of pending users info
@@ -90,6 +91,7 @@ public class AdminService {
 							GameDAO.pending_games.clear();
 							System.out.println("Pending Games list is now: " + GameDAO.pending_games.toString());
 							GameDAO.writeToFile(GameDAO.pending_games, GameDAO.pending_gfile);
+							GameDAO.admin_msg_games = "";
 							return;
 						}
 						
@@ -138,16 +140,7 @@ public class AdminService {
 			while(true) {
 				switch(userMenu()) {
 					case 1: // Add a new user
-						System.out.println("Enter info for new user");
-						String name = UserDAO.getFirstName();
-						String last_name = UserDAO.getLastName();
-						String uname = UserDAO.getNewUsername("");
-						String email = UserDAO.getEmail();
-						UserType type = UserDAO.getNewType();
-						LocalDate birthday = UserDAO.getNewBirthday(type);
-						
-						addUser(name, last_name, uname, email, birthday, type);
-						System.out.println("Success! User added to database");					
+						UserDAO.addUser();				
 						break;
 						
 					case 2:	// View user
@@ -157,6 +150,7 @@ public class AdminService {
 							System.out.println("Invalid input for user search in view user menu. Try again");
 							continue;
 						}
+						
 						int uid;
 						User user;
 						if(user_id.matches("^\\d+")) {	// Is Integer
@@ -166,18 +160,17 @@ public class AdminService {
 								System.out.println("No userfound with ID provided");
 							}
 							else {
-								System.out.println(user.toString());
+								Menu.printUser(user);
 								break;
 							}
 						}
 						else {
 							user = UserDAO.getUser(user_id);
-							if(user == null) {
+							if(user == null)
 								System.out.println("No userfound with ID provided");
-							}
-							else {
-								System.out.println(user.toString());
-							}
+	
+							else 
+								Menu.printUser(user);
 						}
 						break;
 					case 3:	// Modify user
@@ -218,42 +211,7 @@ public class AdminService {
 					
 						break;
 					case 4:	// Delete user
-						System.out.println("Enter the name of user to delete");
-						username = scan.nextLine();
-						id = 0;
-						log.debug(username);
-
-						target_user = null;
-						if(username == null || username.equals("")) {
-							System.out.println("Invalid ID format in manage users menu - search failed");
-							break;
-						}
-						if(username.matches("^\\d+")) {	// Is Integer
-							try {
-								id = Integer.parseInt(username);
-								target_user = UserDAO.getUserbyID(id);
-								if(target_user != null) {
-//										System.out.println("Updating account info for the following user:\n" + target_user.toString());
-									if(UserDAO.deleteUser(target_user));
-									System.out.println("User removed from database");
-									return;
-//										System.out.println("Account info saved");
-								}
-							} catch(Exception e) {
-//								System.out.println("Invalid ID format in manage users menu");
-//								e.printStackTrace();
-							} 
-						}
-						else {
-							target_user = UserDAO.getUser(username);
-							if(target_user != null) {
-				//					System.out.println("Updating account info for the following user:\n" + target_user.toString());
-								if (UserDAO.deleteUser(target_user));
-								System.out.println("User removed from database");
-								break;
-				//					System.out.println("Account info saved");
-							}
-						}
+						UserDAO.deleteUser(logged_user, null);
 						break;
 					case 0:	// Quit
 						System.out.println("Exiting User menu..");
@@ -299,17 +257,20 @@ public class AdminService {
 					int selection = Menu.select();
 					if(selection == 1) {
 						GameService.rentGame(logged_user);
-						return;
+						break;
 					}
 					
 					if(selection == 2) {
 						GameService.buyGame(logged_user);
-						return;
+						break;
 					}
 					
-					else 
+					else {
 						System.out.println("Invalid selection in title menu");
 						continue;
+					}
+				case 4: // Delete game
+					
 				case 0:	// Quit
 					System.out.println("Exiting Game title menu..");
 					return;
@@ -326,25 +287,6 @@ public class AdminService {
 		UserDAO.users.put(u.getId(), u);
 		List<User> users_list = new ArrayList<User>(UserDAO.users.values());
 		UserDAO.writeToFile(users_list, "users.dat");
-	}
-	
-	public void addUser(String firstName, String lastName, String userName, String email, LocalDate birthday, UserType type) {
-		// Get user input for account details		
-		User u = new User(firstName, lastName, userName, email, birthday, UserType.ADMIN);
-		System.out.println("Adding new user:\n" + u.toString());
-		
-		if(type == UserType.ADMIN) {
-			UserDAO.admins.put(u.getId(), u);
-			List<User> admins_list = new ArrayList<User>(UserDAO.admins.values());
-			UserDAO.writeToFile(admins_list, UserDAO.admin_file);
-		}
-		
-		else {
-			UserDAO.users.put(u.getId(), u);
-			List<User> users_list = new ArrayList<User>(UserDAO.users.values());
-			UserDAO.writeToFile(users_list, UserDAO.user_file);
-		}
-		return;
 	}
 	
 	public void updateUser(User user) {
@@ -408,14 +350,19 @@ public class AdminService {
 		System.out.println("Account details: " + user.toString());
 		System.out.println("Account changes saved");
 		
-		if(type == UserType.ADMIN) 
-			UserDAO.writeToFile((ArrayList<User>)UserDAO.admins.values(), UserDAO.admin_file);
+		if(type == UserType.ADMIN) {
+			List<User> admin_list = UserDAO.getAdmins();
+			UserDAO.writeToFile(admin_list, UserDAO.admin_file);
+			System.out.println("Updated details for " + username);
+		}
 		
-		if(type == UserType.CUSTOMER || type == UserType.GAMER)
-			UserDAO.writeToFile((ArrayList<User>)UserDAO.users.values(), UserDAO.user_file);
-	
-		return;
+		if(type == UserType.CUSTOMER || type == UserType.GAMER) {
+			List<User> user_list = UserDAO.getUsers();
+			UserDAO.writeToFile(user_list, UserDAO.user_file);
+			System.out.println("Updated details for " + username);
+		}
 		
+		return;		
 	}
 	
 	private int userMenu() {

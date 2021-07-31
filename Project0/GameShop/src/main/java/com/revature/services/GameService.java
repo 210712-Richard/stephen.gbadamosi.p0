@@ -16,6 +16,23 @@ public class GameService {
 	private static final Logger log = LogManager.getLogger(Menu.class);
 	private static Scanner scan = SingletonScanner.getScanner().getScan();
 	
+	public static Long usePoints(User user, String intent) {
+		Long use_pts = -1L;
+	
+		if(user == null || intent == null) {
+			System.out.println("Invalid or Missing input, unable to use points");
+		}
+		
+		if(intent.equalsIgnoreCase("rent")) {
+			use_pts =  user.getPoints() - 5L;
+		}
+		
+		if(intent.equalsIgnoreCase("sell") || intent.equalsIgnoreCase("buy")) {
+			use_pts = user.getPoints() - 20L;
+		}
+		
+		return use_pts;
+	}
 	
 	public void modifyGame(User admin) {
 		// Verify user is admin
@@ -88,6 +105,10 @@ public class GameService {
 				System.out.println(game.toString());
 
 				break;
+			case 5: // Delete game
+				deleteGame(admin);
+				break;
+				
 			case 0: 
 				System.out.println("Exiting menu..");
 				return;
@@ -98,11 +119,9 @@ public class GameService {
 			}
 		}
 		
-	
-		
 		// Print menu for modifiable properties
 	}
-	
+		
 	public static void buyGame(User user) {
 		boolean validSelection = false;
 		System.out.println("Entering title menu for sales..");
@@ -122,7 +141,7 @@ public class GameService {
 				System.out.println("Invalid game title for purchase. Try again");
 				continue chooseGameLoop;
 			}
-			game = GameDAO.getGame(null);
+			game = GameDAO.getGame(game_name);
 			if(game == null) {
 				System.out.println("Invalid game title for purchase. Try again");
 				continue chooseGameLoop;				
@@ -151,7 +170,7 @@ public class GameService {
 				game.rentedBy = null;
 				game.rentDate = null;
 				game.returnDate = null;
-				System.out.println(game.title + " sold to " + user.getUsername());
+				System.out.println(game.title + " sold to " + game.getOwnedBy());
 				
 				UserDAO.writeToFile(UserDAO.getUsers(), UserDAO.user_file);
 				UserDAO.writeToFile(UserDAO.getAdmins(), UserDAO.admin_file);
@@ -245,25 +264,45 @@ public class GameService {
 		}
 	}
 	
-	public static Long usePoints(User user, String intent) {
-		Long use_pts = -1L;
+	public static boolean returnGame(User user) {
+		boolean status = false;
+		Game game = null;
+		System.out.println("User inventory: " + user.getInventory());
+		System.out.println("Search inventory by title for the game you'd like to return");
+		game = GameDAO.getGame("");
+
+		if(game != null && game.getStatus() != GameStatus.RENTED) {
+			System.out.println("Couldn't return " + game.title + " because it is " + game.status);
+			return status;
+		}
+		
+		
+		else {
+			if(game.getRentedBy().equalsIgnoreCase(user.getUsername())) {
+			
+				System.out.println("Returning game: " + game.title);
+				game.rentedBy = null;
+				game.rentDate = null;
+				game.returnDate = null;
+				game.status = GameStatus.AVAILABLE;
+				user.inventory.remove(game);
+				GameDAO.writeToFile(GameDAO.games, GameDAO.games_file);
+				UserDAO.writeToFile(UserDAO.getAdmins(), UserDAO.admin_file);
+				UserDAO.writeToFile(UserDAO.getUsers(), UserDAO.user_file);
+				
+				return true;
+			}
+			else
+				System.out.println("Game not in user collection. Return failed");
+		}
+		
+		return status;
+	}	
 	
-		if(user == null || intent == null) {
-			System.out.println("Invalid or Missing input, unable to use points");
-		}
+	private static boolean deleteGame(User admin) {
+		System.out.println("Entering delete title menu..");
 		
-		if(intent.equalsIgnoreCase("rent")) {
-			use_pts =  user.getPoints() - 5L;
-		}
-		
-		if(intent.equalsIgnoreCase("sell") || intent.equalsIgnoreCase("buy")) {
-			use_pts = user.getPoints() - 20L;
-		}
-		
-		return use_pts;
-	}
-	
-	private static void removeGame(User admin) {
+		boolean status = false;
 		if(GameDAO.games.size() > 0) {
 			System.out.println("Games List: ");
 			System.out.println(GameDAO.games.toString());
@@ -277,31 +316,34 @@ public class GameService {
 			if(del_title != null) {
 				if(del_title.status != GameStatus.AVAILABLE) {
 					System.out.println("Unable to delete game, check status then try again. Remove failed");
-					return;
+					return status;
 				}
+				
 				System.out.println("Found Game: " + del_title.toString());
-				System.out.println("Are you sure you want to delete this title? Y or N to continue");			
+				System.out.println("Are you sure you want to delete this title?\n(Y)es or (N)o to continue");			
 				String confirm = scan.nextLine();
 				confirm.trim();
 				
 				if(confirm.equalsIgnoreCase("yes") || confirm.equalsIgnoreCase("y")) {
 					GameDAO.games.remove(del_title);
+					status = true;
 					System.out.println("Deleted Game: " + del_title.title + " from inventory");
-					return;
+					return status;
 				}
 				if(confirm.equalsIgnoreCase("no") || confirm.equalsIgnoreCase("n")) {
 					System.out.println("Delete operation cancelled by admin");
-					return;
+					return status;
 				}
 			}
 			System.out.println("Remove failed. Double check title and try again");
 		}
 		
 		else
-			System.out.println("You don't have permission for the requested action. Please login as an admin");
+			System.out.println("You don't have permission for the requested action. Please login as an admin then try again");
 
-		return;
+		return status;
 	}
+	
 	private static int rentMenu() {
 		System.out.println("How long would you like to rent this game for?");
 		System.out.println("\t1. 1 week");
@@ -320,6 +362,7 @@ public class GameService {
 		System.out.println("\t2. Change Rating");
 		System.out.println("\t3. Change Release Date");
 		System.out.println("\t4. Change Status");
+		System.out.println("\t5. Delete Title from Game inventory");
 		System.out.println("\t0. Quit");
 		int selection = Menu.select();
 		
